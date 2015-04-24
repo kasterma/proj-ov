@@ -1,13 +1,20 @@
-## connect to sockets and save data
+## connect to sockets and save data and info
+##
+## data: location data of trains
+## info: enrichment of this location data
 
 import zmq
 import zlib
 import xml.etree.ElementTree as ET
 import time
 
-url = "tcp://vid.openov.nl:6701"
-subscribe_string = "/TreinLocatieService/AllTreinLocaties"
-outfilename = "fridayrun.ovdat"
+url_dat = "tcp://vid.openov.nl:6701"
+subscribe_string_dat = "/TreinLocatieService/AllTreinLocaties"
+outfilename_dat = "fridayrun.ovdat"
+
+url_info = "tcp://do.u0d.de:7660"
+subscribe_string_info = "/RIG/InfoPlusDVSInterface"
+outfilename_info = "fridayrun.ovinfo"
 
 def str_message(message):
     return zlib.decompress(message, zlib.MAX_WBITS|16)
@@ -15,7 +22,7 @@ def str_message(message):
 def xml_message(message):
     return ET.fromstring(str_message(message))
 
-def get_messages(while_pred):
+def get_messages_while(while_pred, url, subscribe_string):
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
     socket.connect(url)
@@ -24,7 +31,7 @@ def get_messages(while_pred):
     messages = []
     while while_pred():
         m = socket.recv()
-        if m != '/TreinLocatieService/AllTreinLocaties':
+        if m != subscribe_string:
             messages.append(str_message(m) + "\n")
             print("message")
 
@@ -41,17 +48,23 @@ def make_while_pred(mins):
 
     return pred
 
-def get_30min_messages(basefilename):
-    messages = get_messages(make_while_pred(30))
+def get_messages(mins, basefilename, url, subscribe_string):
+    messages = get_messages_while(make_while_pred(mins), url, subscribe_string)
     outfile = open(time.strftime("%Y-%m-%d-%H-%M", time.gmtime(time.time())) + basefilename, "w")
     outfile.writelines(messages)
     outfile.close()
 
-
-def main():
+def get_dat():
     while True:
         print(time.strftime("%Y-%m-%d-%H-%M", time.gmtime(time.time())))
-        get_30min_messages(outfilename)
+        get_messages(30, outfilename_dat, url_dat, subscribe_string_dat)
+
+def get_info():
+    while True:
+        print(time.strftime("%Y-%m-%d-%H-%M", time.gmtime(time.time())))
+        get_messages(30, outfilename_info, url_info, subscribe_string_info)
+
+
 
 # <TreinLocation xmlns:ns0="http://schemas.datacontract.org/2004/07/Cognos.Infrastructure.Models">
 #   <ns0:TreinNummer>6324</ns0:TreinNummer>
