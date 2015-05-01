@@ -15,6 +15,24 @@ def getparsedlines(filename):
     xmls = [xml_message(line) for line in lines]
     return xmls
 
+def line2arr(xmlline):
+    """Given a PutReisInformatieBoodschapIn xml.element generate array of the relevant data
+
+    Clearly needs to be unhacked."""
+    try:
+        tijd = datetime.datetime.strptime(xmlline.getchildren()[0].getchildren()[0].getchildren()[2].text, "%Y-%m-%dT%H:%M:%SZ")
+        hour = tijd.hour
+        minute = tijd.minute
+        assert xmlline.getchildren()[0].getchildren()[1].getchildren()[3].getchildren()[0].tag == "{urn:ndov:cdm:trein:reisinformatie:data:2}TreinNummer"
+        treinnummer = int(xmlline.getchildren()[0].getchildren()[1].getchildren()[3].getchildren()[0].text)
+        assert xmlline.getchildren()[0].getchildren()[1].getchildren()[3].getchildren()[1].tag == "{urn:ndov:cdm:trein:reisinformatie:data:2}TreinSoort"
+        treinsoort = xmlline.getchildren()[0].getchildren()[1].getchildren()[3].getchildren()[1].text
+        assert xmlline.getchildren()[0].getchildren()[1].getchildren()[3].getchildren()[12].getchildren()[4].tag == "{urn:ndov:cdm:trein:reisinformatie:data:2}LangeNaam"
+        eindbestemming = xmlline.getchildren()[0].getchildren()[1].getchildren()[3].getchildren()[12].getchildren()[4].text
+        return [treinnummer, treinsoort, eindbestemming.encode('iso-8859-1'), hour, minute]
+    except:
+        return ["MISFORMED"]
+
 def elts2arrs(elt):
     """Given ArrayOfTreinLocation xml.element create array of relevant data"""
     trainloc_elts = elt.getchildren()
@@ -54,6 +72,12 @@ def dat2csv(infilename, csvfilename):
     csvdat = [elts2arrs(its) for its in dat]  ## since an infile contains a list of outputs from the apit iterate over the list
     writecsv(flatten(csvdat), csvfilename)
 
+def infodat2csv(infilename, csvfilename):
+    """Convert the output from the informatoin api to a csv file"""
+    dat = getparsedlines(infilename)
+    csvdat = [line2arr(its) for its in dat]
+    writecsv([it for it in csvdat if it != "MISFORMED"], csvfilename)
+
 ovdatFiles = ["2015-04-24-11-13fridayrun",
               "2015-04-24-15-14fridayrun",
               "2015-04-24-11-43fridayrun",
@@ -70,12 +94,27 @@ ovdatFiles = ["2015-04-24-11-13fridayrun",
               "2015-04-24-18-15fridayrun",
               "2015-04-24-14-44fridayrun"]
 
-def main():
+infoFiles = ["2015-04-24-12-28fridayrun",
+             "2015-04-24-15-58fridayrun",
+             "2015-04-24-12-58fridayrun",
+             "2015-04-24-16-28fridayrun",
+             "2015-04-24-13-28fridayrun",
+             "2015-04-24-16-58fridayrun",
+             "2015-04-24-13-58fridayrun",
+             "2015-04-24-17-28fridayrun",
+             "2015-04-24-14-28fridayrun",
+             "2015-04-24-17-58fridayrun",
+             "2015-04-24-14-58fridayrun",
+             "2015-04-24-18-28fridayrun",
+             "2015-04-24-15-28fridayrun"]
+
+def convertdat():
     for name in ovdatFiles:
         print(name)
         dat2csv("rawdata/" + name + ".ovdat", name + ".csv")
 
-#if __name__ == '__main__':
-#    main()
-
+def convertinfo():
+    for name in infoFiles:
+        print(name)
+        infodat2csv("rawdata/" + name + ".ovinfo", name + "-info.csv")
 
