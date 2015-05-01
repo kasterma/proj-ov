@@ -4,7 +4,7 @@ import zmq
 import zlib
 import xml.etree.ElementTree as ET
 import time
-
+import csv
 
 frameleft = 4.6725475
 frameright = 5.1844415
@@ -13,6 +13,18 @@ framebottom = 52.274690500000005
 
 url = "tcp://vid.openov.nl:6701"
 subscribe_string = "/TreinLocatieService/AllTreinLocaties"
+
+infofile = open("info.csv")
+ff = [it for it in csv.reader(infofile)]
+infofile.close()
+
+def getinfo(number):
+    print(number)
+    r = [[t,d] for [n,t,d] in ff if n == str(number)]
+    if len(r) == 0:
+        return "unknown"
+    else:
+        return r[0][0] + ":" + r[0][1]
 
 def str_message(message):
     return zlib.decompress(message, zlib.MAX_WBITS|16)
@@ -25,7 +37,7 @@ def trainloc2arr(tl):
     treinnummer = int(tl[0].text)
     lat = float(tl[1].find('{http://schemas.datacontract.org/2004/07/Cognos.Infrastructure.Models}Latitude').text)
     lon = float(tl[1].find('{http://schemas.datacontract.org/2004/07/Cognos.Infrastructure.Models}Longitude').text)
-    return [treinnummer, lat, lon]
+    return [getinfo(treinnummer), lat, lon]
 
 def getCurrentDat():
     """Quick adjustment of get_messages_while from getdata"""
@@ -62,7 +74,7 @@ class MyHandler(BaseHTTPRequestHandler):
             self.wfile.write(line)
 
         dat = [[b, c, a] for [a,b,c] in filterCurrentDat(getCurrentDat())]
-        s = "<script> var locdata = " + str(dat) + ";</script>"
+        s = "<script> var locdata = " + str(dat[1:10]) + ";</script>"
         self.wfile.write(s)
 
         for line in footfile.readlines():
