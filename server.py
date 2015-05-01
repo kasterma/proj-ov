@@ -13,7 +13,7 @@ class MyHandler(BaseHTTPRequestHandler):
         for line in headfile.readlines():
             self.wfile.write(line)
 
-        s = "hi hi hi"
+        s = "<script> var locdata = [[52.395380, 4.844216, \"label1\"], [52.461260, 5.053292, \"hi\"]];</script>"
         self.wfile.write(s)
 
         for line in footfile.readlines():

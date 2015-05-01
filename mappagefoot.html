@@ -45,9 +45,10 @@
          .text(label);
    }
 
-   drawloc(4.856225, 52.315426);
-   drawloc(5.053292, 52.461260);
-   addlabel(5.053292, 52.461260, "hi");
+   for(var idx = 0; idx < locdata.length; idx++) {
+       drawloc(locdata[idx][1], locdata[idx][0]);
+       addlabel(locdata[idx][1], locdata[idx][0], locdata[idx][2]);
+   }
 </script>
 
 </body>
