@@ -1,5 +1,53 @@
 ## base copied from internets
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+import zmq
+import zlib
+import xml.etree.ElementTree as ET
+import time
+
+
+frameleft = 4.6725475
+frameright = 5.1844415
+frametop = 52.4917905
+framebottom = 52.274690500000005
+
+url = "tcp://vid.openov.nl:6701"
+subscribe_string = "/TreinLocatieService/AllTreinLocaties"
+
+def str_message(message):
+    return zlib.decompress(message, zlib.MAX_WBITS|16)
+
+def xml_message(message):
+    return ET.fromstring(message)
+
+def trainloc2arr(tl):
+    """Given a TrainLocation element, extract the interesting data"""
+    treinnummer = int(tl[0].text)
+    lat = float(tl[1].find('{http://schemas.datacontract.org/2004/07/Cognos.Infrastructure.Models}Latitude').text)
+    lon = float(tl[1].find('{http://schemas.datacontract.org/2004/07/Cognos.Infrastructure.Models}Longitude').text)
+    return [treinnummer, lat, lon]
+
+def getCurrentDat():
+    """Quick adjustment of get_messages_while from getdata"""
+    context = zmq.Context()
+    socket = context.socket(zmq.SUB)
+    socket.connect(url)
+    socket.setsockopt(zmq.SUBSCRIBE, subscribe_string)
+
+    messages = []
+    while len(messages) == 0:
+        m = socket.recv()
+        if m != subscribe_string:
+            messages.append(str_message(m) + "\n")
+
+    socket.close()
+
+    message = xml_message(messages[0])
+
+    return [trainloc2arr(it) for it in message.getchildren()]
+
+def filterCurrentDat(dat):
+    return [it for it in dat if it[1] < frametop and it[1] > framebottom and it[2] > frameleft and it[2] < frameright]
 
 class MyHandler(BaseHTTPRequestHandler):
 
@@ -13,7 +61,8 @@ class MyHandler(BaseHTTPRequestHandler):
         for line in headfile.readlines():
             self.wfile.write(line)
 
-        s = "<script> var locdata = [[52.395380, 4.844216, \"label1\"], [52.461260, 5.053292, \"hi\"]];</script>"
+        dat = [[b, c, a] for [a,b,c] in filterCurrentDat(getCurrentDat())]
+        s = "<script> var locdata = " + str(dat) + ";</script>"
         self.wfile.write(s)
 
         for line in footfile.readlines():
