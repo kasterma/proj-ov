@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+  <style type="text/css">
+    .bgimg {
+    background-image: url("images/amstarea.png");
+    background-repeat: no-repeat;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="map" class="bgimg"></div>
+
+<script>
+    var width = 763;
+    var height = 527;
+
+    // measured using "what's here?".  All corners to get some accuracy from redundancy.
+    var topleft = [4.674951, 52.495135];
+    var bottomleft = [4.670144, 52.274270];
+    var topright = [5.179635, 52.488446];
+    var bottomright = [5.189248, 52.275111];
+
+    // computing values for use in myproj
+    var frameleft = (topleft[0] + bottomleft[0])/2;
+    var frameright = (topright[0] + bottomright[0])/2;
+    var frametop = (topleft[1] + topright[1])/2;
+    var framebottom = (bottomleft[1] + bottomright[1])/2;
+
+    // projection from lon, lat to coordinate in picture
+    var myproj = function(x,y) {
+      return [(x - frameleft)/(frameright - frameleft) * width,
+              (y - frametop)/(framebottom - frametop) * height];
+    }
+
+    var svg = d3.select("#map")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+    var drawloc = function(x, y) {
+       var locs = myproj(x, y);
+       d3.select("svg")
+         .append("circle")
+         .attr("cx", locs[0])
+         .attr("cy", locs[1])
+         .attr("r", 7).attr("fill", "red");
+   }
+
+    var addlabel = function(x, y, label) {
+       var locs = myproj(x, y);
+       locs[0] = locs[0] + 9;
+       locs[1] = locs[1] + 5;
+       d3.select("svg")
+         .append("text")
+         .attr("x", locs[0])
+         .attr("y", locs[1])
+         .text(label);
+   }
+
+   drawloc(4.856225, 52.315426);
+   drawloc(5.053292, 52.461260);
+   addlabel(5.053292, 52.461260, "hi");
+</script>
+
+</body>
+
+</html>
